@@ -1,0 +1,366 @@
+if true
+    clear; close all; clc;
+    img = imread('OAP spectrum.jpeg');
+    % img = imread('Real spectrum.jpeg');
+    
+    figure;
+    imshow(img);
+    imshow(imrotate(img,-1));% OAP +0.3
+    point = 15;
+    title('Click',num2str(point),' points')
+    [x_pixels, y_pixels] = ginput(point);
+    
+    
+    hold on
+    scatter(x_pixels,y_pixels,'filled','b')
+
+
+    x_ref1_pixel = 278;% 220;%
+    x_ref1_value = 750;% 650;%
+
+    x_ref2_pixel = 855;% 1145;%
+    x_ref2_value = 900;% 1000;%
+
+    m_wavelength = (x_ref2_value - x_ref1_value) / (x_ref2_pixel - x_ref1_pixel);
+    b_wavelength = x_ref1_value - m_wavelength * x_ref1_pixel;
+
+    wavelengths_nm = m_wavelength * x_pixels + b_wavelength;
+    disp('--- Digitized Data ---');
+    disp(['Wavelength (nm): ', num2str(wavelengths_nm')]);
+    disp(['Y-Values (pixels): ', num2str(y_pixels')]); % ÔâèÛÙÝ ÔáÕäÙÙÝ ÙÔÙÕ ÜÐ×è ÛÙÕÜ Y
+
+    save("data.mat")
+end
+
+if true
+clear; close all; clc
+load("data.mat")
+c = 299792458; % m
+interp_steps = 2^15;
+FFT_steps = 2^25;
+
+[wavelengths_nm, indx] = sort(wavelengths_nm);
+wavelengths_m = wavelengths_nm*1e-9;
+y_pixels = y_pixels(indx);
+
+I_m =  abs(y_pixels - max(y_pixels)); % turning the - sign to pulse sign
+E_m = sqrt(I_m);
+
+
+freq_Hz = c./wavelengths_m;
+freq_PHz = freq_Hz / 1e15;
+omega_PHz = 2 * pi * freq_PHz;
+
+omega_PHz_lin = linspace(omega_PHz(1),omega_PHz(end),interp_steps);
+E_PHz    = interp1(omega_PHz, E_m, omega_PHz_lin, 'pchip', 0);
+
+
+dt = 1/abs(freq_PHz(end) - freq_PHz(1)) / (FFT_steps/interp_steps); % fs
+
+time_fs  = [-FFT_steps/2 : (FFT_steps/2-1) ] * dt;
+
+E_fs_uncentered = fft(E_PHz,FFT_steps);
+E_fs = fftshift(E_fs_uncentered);
+I_fs = abs(E_fs).^2;
+I_fs = I_fs/max(I_fs);
+I_half_fs = 0.5;
+indx_half = find(I_fs>=0.5);
+fwhm_left_indx = indx_half(1);
+fwhm_right_indx = indx_half(end);
+fwhm_fs = abs(time_fs(fwhm_right_indx)-time_fs(fwhm_left_indx));
+
+% disp(fwhm_fs)
+disp('===================================================');
+fprintf('Calculated Time-Limited Pulse Duration (FWHM): %.2f fs\n', fwhm_fs);
+disp('===================================================');
+
+figure;
+
+subplot(2,1,1);
+plot(wavelengths_nm, I_m, 'k', 'LineWidth', 2);
+title('Extracted Spectral Intensity vs. Wavelength');
+xlabel('Wavelength (nm)');
+ylabel('Intensity (a.u.)');
+grid on;
+
+subplot(2,1,2);
+plot(time_fs, I_fs, 'r', 'LineWidth', 2);
+hold on;
+plot([fwhm_left_indx fwhm_right_indx], [I_half_fs I_half_fs], 'b--', 'LineWidth', 1.5); % çÕ FWHM
+title('Time-Limited Pulse Intensity Profile');
+xlabel('Time (fs)');
+ylabel('Normalized Intensity');
+legend('Pulse Intensity', ['FWHM = ' num2str(fwhm_fs, '%.2f') ' fs'], 'Location', 'best');
+xlim([-5*fwhm_fs, 5*fwhm_fs]); % ÔÒÑÜê ÔæÙè ÜØÕÕ× èÜÕÕàØÙ
+grid on;
+
+
+
+
+end
+
+
+
+
+
+
+% % =======================================================
+% % --- éÜÑ 1: ÔÒÓèê çÑÕâÙÝ ÕØâÙàê àêÕàÙÝ (Ùé ÜâÓÛß!) ---
+% % =======================================================
+% 
+% % çÑÕâ ÞÔÙèÕê ÔÐÕè
+% % éÙÞÕé ÑÙ×ÙÓÕê àÕ×Õê ÜÐÕäØÙçÔ éÜ äÕÜáÙÝ çæèÙÝ: ààÕÞØè/äÞØÕéàÙÙÔ (nm/fs)
+% c = 299.792458; % c H 300 nm/fs 
+% 
+% % Ô×Üã Ðê ÔÓÕÒÞÐÕê ÔÜÜÕ ÑàêÕàÙÝ ÔÐÞÙêÙÙÝ éÜÚ ÞÔÓÙÒÙØæÙÔ:
+% % (ÕÓÐ éÐÕèÛÙ ÔÒÜ ÞáÕÓèÙÝ ÑáÓè âÕÜÔ)
+% % -----------------------------------------------------------------
+% % 1. ÐÕèÛÙ ÒÜ éàÓÒÞÕ (ÞÔæÙè ÔÐÕäçÙ, Ñ-nm)
+% wavelengths_nm =wavelengths_nm; % <-- éàÔ Ðê ÖÔ!
+% 
+% % [wavelengths_nm, indx] = sort(wavelengths_nm);
+% % 2. âÕæÞÔ áäçØèÜÙê éàÓÒÞÔ (ÞÔæÙè ÔÐàÛÙ)
+% y_pixels =  abs(y_pixels - max(y_pixels));
+% Y_spectrum = y_pixels; % <-- éàÔ Ðê ÖÔ!
+% % -----------------------------------------------------------------
+% % äèÞØèÙ ÓÒÙÞÔ Ü-FFT:
+% N_points = 2^16; % Þáäè àçÕÓÕê FFT ÑáÙáÙ (×ÖçÔ éÜ 2)
+% P_factor = 8;    % ÒÕèÝ Zero Padding (ÞÒÓÙÜ èÖÕÜÕæÙÙê ÖÞß)
+% N_points_Padded = N_points * P_factor; % Þáäè àçÕÓÕê FFT áÕäÙ
+% 
+% % 1. ×ÙéÕÑ ÔêÓÙèÕê ÔÖÕÕÙêÙê (omega) ÑÙ×ÙÓÕê 1/fs
+% omega_orig = 2 * pi * c ./ wavelengths_nm; 
+% 
+% % 2. ×ÙéÕÑ Þéèâê ÔéÓÔ (|E(omega)|)
+% E_omega_magnitude_orig = sqrt(Y_spectrum);
+% 
+% % 3. ÞÙÕß: FFT ÓÕèé áÓè âÕÜÔ éÜ æÙè ÔÓÒÙÞÔ, ÜÛß ÞÞÙÙàÙÝ Ðê omega
+% [omega_orig_sorted, sort_idx] = sort(omega_orig);
+% E_omega_magnitude_orig_sorted = E_omega_magnitude_orig(sort_idx);
+% 
+% 
+% 
+% 
+% % 1. çÑÙâê èéê Ô-omega Ô×ÓéÔ (ÜÙàÙÐèÙê)
+% omega_min = min(omega_orig_sorted);
+% omega_max = max(omega_orig_sorted);
+% omega_lin = linspace(omega_min, omega_max, N_points);
+% 
+% % 2. ÐÙàØèäÕÜæÙÔ éÜ Þéèâê ÔéÓÔ Üèéê ÔÜÙàÙÐèÙê
+% E_omega_TL_Interpolated = interp1(omega_orig_sorted, E_omega_magnitude_orig_sorted, omega_lin, 'pchip', 0);
+% % TL - Time-Limited (ÞàÙ×ÙÝ äÐÖÔ Ðäá)
+% 
+% % 3. ÙÙéÕÝ Zero Padding
+% % ÙÕæèÙÝ ÕçØÕè ÒÓÕÜ ÙÕêè (N_points_Padded) ÕÞÞçÞÙÝ Ðê ÔàêÕàÙÝ ÔÞÐÕàØèäÜÙÝ Ñ×Üç ÔéÞÐÜÙ
+% E_omega_Padded = zeros(1, N_points_Padded);
+% E_omega_Padded(1:N_points) = E_omega_TL_Interpolated;
+% 
+% 
+% 
+% 
+% % 1. çÑÙâê èéê Ô-omega Ô×ÓéÔ (ÜÙàÙÐèÙê)
+% omega_min = min(omega_orig_sorted);
+% omega_max = max(omega_orig_sorted);
+% omega_lin = linspace(omega_min, omega_max, N_points);
+% 
+% % 2. ÐÙàØèäÕÜæÙÔ éÜ Þéèâê ÔéÓÔ Üèéê ÔÜÙàÙÐèÙê
+% E_omega_TL_Interpolated = interp1(omega_orig_sorted, E_omega_magnitude_orig_sorted, omega_lin, 'pchip', 0);
+% % TL - Time-Limited (ÞàÙ×ÙÝ äÐÖÔ Ðäá)
+% 
+% % ÙæÙèê ×ÜÕß Hann ÑÐÕèÚ N_points
+% hann_window = hann(N_points)'; 
+% 
+% % ÔÛäÜê ÔáäçØèÕÝ ÔÞÐÕàØèäÜ Ñ×ÜÕß
+% E_omega_windowed = E_omega_TL_Interpolated .* hann_window;
+% 
+% % 3. ÙÙéÕÝ Zero Padding (ÞéêÞéÙÝ ÑàêÕàÙÝ ÔÞÕ×ÜàÙÝ)
+% E_omega_Padded = zeros(1, N_points_Padded);
+% E_omega_Padded(1:N_points) = E_omega_windowed;
+% 
+% % 3. ÙÙéÕÝ Zero Padding
+% % ÙÕæèÙÝ ÕçØÕè ÒÓÕÜ ÙÕêè (N_points_Padded) ÕÞÞçÞÙÝ Ðê ÔàêÕàÙÝ ÔÞÐÕàØèäÜÙÝ Ñ×Üç ÔéÞÐÜÙ
+% E_omega_Padded = zeros(1, N_points_Padded);
+% E_omega_Padded(1:N_points) = E_omega_TL_Interpolated;
+% 
+% 
+% 
+% % 1. ×ÙéÕÑ æâÓ ÔÖÞß (dt) ÔÞÓÕÙç
+% % æâÓ ÔÖÞß àçÑâ â"Ù ØÕÕ× ÔêÓèÙÝ ÔÛÕÜÜ ÕÒÕÓÜ Ô-FFT (N_points_Padded).
+% Omega_Span = omega_max - omega_min; % [1/fs]
+% dt = (2 * pi / Omega_Span) / N_points_Padded * N_points; % [fs]
+% 
+% % æÙè ÖÞß ÞÞÕèÛÖ áÑÙÑ 0, ÑÙ×ÙÓÕê äÞØÕéàÙÕê (fs)
+% time_fs = (-N_points_Padded/2 : N_points_Padded/2 - 1) * dt;
+% 
+% % 2. ÑÙæÕâ IFFT
+% E_time_uncentered = ifft(E_omega_Padded);
+% 
+% E_time = fftshift(E_time_uncentered);
+% 
+% % 3. ×ÙéÕÑ âÕæÞê ÔäÕÜá ÑÖÞß ÕèÞÕÜ
+% I_time = abs(E_time).^2; 
+% I_time_norm = I_time / max(I_time);
+% 
+% % 4. ÞæÙÐê ÞéÚ ÔäÕÜá (FWHM)
+% I_half = 0.5;
+% % half_max_indices = find(I_time_norm >= I_half);
+% 
+% [~,indx]= max(I_time_norm);
+% half_max_indice_left = interp1(I_time_norm(1:indx),1:indx,0.5);
+% half_max_indice_right = interp1(I_time_norm(indx:end),indx:length(I_time_norm),0.5);
+% 
+% if isempty(half_max_indice_left || half_max_indice_right)
+%     tau_TL = NaN;
+% else
+%     % ÐÙàÓçáÙÝ ÜÔê×ÜÔ ÕÜáÕã Ô-FWHM
+%     idx_start = round(half_max_indice_left);
+%     idx_end = round(half_max_indice_right);
+% 
+%     % ×ÙéÕÑ FWHM (ÐÕèÚ ÔäÕÜá ÔÞÕÒÑÜ-äÕèÙÙÔ)
+%     tau_TL = time_fs(idx_end) - time_fs(idx_start);
+%     t_start = time_fs(idx_start);
+%     t_end = time_fs(idx_end);
+% end
+% 
+% % =======================================================
+% % --- éÜÑ 5: ÔæÒê êÕæÐÕê ÕÒèäÙÝ ---
+% % =======================================================
+% 
+% disp('===================================================');
+% fprintf('Calculated Time-Limited Pulse Duration (FWHM): %.2f fs\n', tau_TL);
+% disp('===================================================');
+% 
+% figure;
+% 
+% subplot(2,1,1);
+% plot(wavelengths_nm, Y_spectrum, 'k', 'LineWidth', 2);
+% title('Extracted Spectral Intensity vs. Wavelength');
+% xlabel('Wavelength (nm)');
+% ylabel('Intensity (a.u.)');
+% grid on;
+% 
+% subplot(2,1,2);
+% plot(time_fs, I_time_norm, 'r', 'LineWidth', 2);
+% hold on;
+% plot([t_start t_end], [I_half I_half], 'b--', 'LineWidth', 1.5); % çÕ FWHM
+% title('Time-Limited Pulse Intensity Profile');
+% xlabel('Time (fs)');
+% ylabel('Normalized Intensity');
+% legend('Pulse Intensity', ['FWHM = ' num2str(tau_TL, '%.2f') ' fs'], 'Location', 'best');
+% xlim([-5*tau_TL, 5*tau_TL]); % ÔÒÑÜê ÔæÙè ÜØÕÕ× èÜÕÕàØÙ
+% grid on;
+% 
+% 
+% 
+% % 
+% % 
+% % % =======================================================
+% % % --- éÜÑ 2: ÔÞèÔ ÞÞè×Ñ ÐÕèÚ ÒÜ (lambda) ÜÞè×Ñ êÓè (omega) ---
+% % % =======================================================
+% % 
+% % % 1. ×éÑ Ðê ÔêÓèÙÝ (omega)
+% % omega_orig = 2 * pi * c ./ wavelengths_nm; 
+% % E_omega_magnitude_orig = sqrt(Y_spectrum);
+% % 
+% % % 2. ÞÙÙß Ðê ÔêÓèÙÝ (omega) ÕÐê ÔÞéèâê (E) ÑÔêÐÝ
+% % [omega_orig_sorted, sort_idx] = sort(omega_orig);
+% % E_omega_magnitude_orig_sorted = E_omega_magnitude_orig(sort_idx);
+% % 
+% % % 3. Ñæâ ÐÙàØèäÕÜæÙÔ âÜ ÔàêÕàÙÝ ÔÞÞÕÙàÙÝ:
+% % % E_omega_TL_Interpolated = interp1(omega_orig_sorted, E_omega_magnitude_orig_sorted, omega_lin, 'pchip', 0);
+% % 
+% % % =======================================================
+% % % --- éÜÑ 3: ÐÙàØèäÕÜæÙÔ ÕÓÒÙÞÔ Ð×ÙÓÔ (×ÙÕàÙ Ü-FFT) ---
+% % % =======================================================
+% % 
+% % % FFT ÓÕèé é-omega ÙÔÙÔ ÞèÕÕ× ÑÐÕäß Ð×ÙÓ (ÜÙàÙÐèÙ).
+% % 
+% % % Ð. çÑÙâê èéê Ô-omega Ô×ÓéÔ (ÜÙàÙÐèÙê)
+% % N_points = 2^10; % Þáäè àçÕÓÕê ÓÒÙÞÔ (âÓÙã ×ÖçÔ éÜ 2 Ü-FFT ÙâÙÜ)
+% % omega_min = min(omega_orig);
+% % omega_max = max(omega_orig);
+% % d_omega = (omega_max - omega_min) / (N_points - 1);
+% % 
+% % % æÙè ÐÕÞÒÔ Ô×Óé ÕÔÞèÕÕ× ÜÙàÙÐèÙê
+% % omega_lin = linspace(omega_min, omega_max, N_points);
+% % 
+% % % Ñ. ÐÙàØèäÕÜæÙÔ éÜ Þéèâê ÔéÓÔ Üèéê ÔÜÙàÙÐèÙê   
+% % % (ÔéêÞé Ñ-interp1, Ðäéè ÜÔéêÞé Ñ-'spline' ÐÕ 'linear')
+% % E_omega_TL = interp1(omega_orig, E_omega_magnitude_orig, omega_lin, 'pchip', 0);
+% % % figure; plot(E_omega_TL)
+% % % TL - Time-Limited (äÐÖÔ Ðäá)
+% % 
+% % % =======================================================
+% % % --- éÜÑ 4: ØèàáäÕèÝ äÕèÙÙÔ ÔäÕÚ (IFFT) Õ×ÙéÕÑ æÙè ÔÖÞß ---
+% % % =======================================================
+% % 
+% % % 1. ×ÙéÕÑ æÙè ÔÖÞß (Time Axis)
+% % % æâÓ ÔÖÞß (dt) ÔäÕÚ ÜØÕÕ× ÔêÓèÙÝ ÔÛÕÜÜ
+% % T_range = 2 * pi / d_omega;
+% % dt = T_range / N_points;
+% % % æÙè ÖÞß ÞÞÕèÛÖ áÑÙÑ 0, ÑÙ×ÙÓÕê äÞØÕéàÙÕê (fs)
+% % time_fs = (-N_points/2 : N_points/2 - 1) * dt;
+% % 
+% % % 2. ÑÙæÕâ IFFT
+% % % Ùé ÜÞèÛÖ Ðê ÔàêÕàÙÝ (fftshift) ÜäàÙ Ô-IFFT.
+% % % ÐàÕ ÞéêÞéÙÝ Ñ-ifft(ifftshift(E)) ÛÓÙ ÜÓÞÕê IFT èÒÙÜ ÞÕÞèÛÖ.
+% % E_time_uncentered = ifft(E_omega_TL);
+% % 
+% % % ÞèÛÕÖ ÔêÕæÐÔ
+% % E_time = fftshift(E_time_uncentered);
+% % 
+% % % 3. ×ÙéÕÑ âÕæÞê ÔäÕÜá ÑÖÞß
+% % I_time = abs(E_time).^2; 
+% % 
+% % % =======================================================
+% % % --- éÜÑ 5: ÞæÙÐê ÞéÚ ÔäÕÜá (FWHM) ---
+% % % =======================================================
+% % 
+% % % éÙÞÕé ÑäÕàçæÙÔ ÞÕÑàÙê 'fwhm' (ÐÝ ÖÞÙàÔ ÑÒèáÔ éÜÚ) ÐÕ ×ÙéÕÑ ÙÓàÙ:
+% % 
+% % % àèÞÕÜ ÔâÕæÞÔ
+% % I_time_norm = I_time / max(I_time);
+% % 
+% % % ÞæÙÐê ÐÙàÓçáÙÝ ÞâÜ ×æÙ ÔÒÕÑÔ (0.5)
+% % % half_max_indices = find(I_time_norm >= 0.5);
+% % [~,indx]= max(I_time_norm);
+% % half_max_indice_left = interp1(I_time_norm(1:indx),1:indx,0.5);
+% % half_max_indice_right = interp1(I_time_norm(indx:end),indx:length(I_time_norm),0.5);
+% % 
+% % if isempty(half_max_indice_left || half_max_indice_right)
+% %     tau_TL = NaN;
+% % else
+% %     % ÔÐÙàÓçá ÔèÐéÕß ÕÔÐ×èÕß
+% %     idx_start = floor(half_max_indice_left);
+% %     idx_end = ceil(half_max_indice_right);
+% % 
+% %     % ×ÙéÕÑ FWHM â"Ù ×ÙáÕè ÔÖÞàÙÝ ÔÞêÐÙÞÙÝ (ÐÙàØèäÕÜæÙÔ ÙÛÕÜÔ ÜÔÙÕê ÞÓÕÙçê ÙÕêè)
+% %     t_start = time_fs(idx_start);
+% %     t_end = time_fs(idx_end);
+% % 
+% %     tau_TL = t_end - t_start;
+% % end
+% % 
+% % % =======================================================
+% % % --- éÜÑ 6: ÔæÒê êÕæÐÕê ÕÒèäÙÝ ---
+% % % =======================================================
+% % 
+% % disp('===================================================');
+% % disp('Fourier-Limited Pulse Duration Calculation Results');
+% % disp('===================================================');
+% % fprintf('Calculated Time-Limited Pulse Duration (FWHM): %.2f fs\n', tau_TL);
+% % 
+% % figure;
+% % 
+% % subplot(2,1,1);
+% % plot(wavelengths_nm, Y_spectrum, 'k', 'LineWidth', 2);
+% % title('Extracted Spectral Intensity vs. Wavelength');
+% % xlabel('Wavelength (nm)');
+% % ylabel('Intensity (a.u.)');
+% % 
+% % subplot(2,1,2);
+% % plot(time_fs, I_time_norm, 'r', 'LineWidth', 2);
+% % hold on;
+% % plot([t_start t_end], [0.5 0.5], 'b--', 'LineWidth', 1.5); % çÕ FWHM
+% % 
+% end
