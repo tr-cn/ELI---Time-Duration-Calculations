@@ -60,7 +60,7 @@ function digitize_with_fourier_example
     
     
     dF_hz = 3e8/(dlabmda_nm*1e-9);
-    dt_s = 1/(N*dF_hz);                  % time spacing
+    dt_s = 1/(N*dF_hz);                  % frequency spacing
     
     % Frequency axis
     t_s = (0:(N+N*padding)-1)' * dt_s;
