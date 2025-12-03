@@ -83,10 +83,10 @@ function digitize_with_fourier_example
     title('Original vs Recovered'); xlabel('Wavelength (nm)'); ylabel('Amplitude'); grid on;
     
     % Error stats
-    error = max(abs(y_pixels - real(y_recovered)));
-    fprintf('Reconstruction error: %.2e (should be ~machine precision)\n', error);
+    error = max(abs(y_pixels_interp - real(y_recovered)));
+    % fprintf('Reconstruction error: %.2e (should be ~machine precision)\n', error);
     
-    fprintf('Data saved to workspace: wavelengths_nm, y_pixels\n');
+    % fprintf('Data saved to workspace: wavelengths_nm, y_pixels\n');
 end
 
 % === OUR CUSTOM DFT FUNCTIONS ===

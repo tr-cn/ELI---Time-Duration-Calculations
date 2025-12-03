@@ -1,6 +1,6 @@
 clear; close all; clc;
 %% Load spectrum: columns = [lambda_nm, I_lambda]
-load('OAP_data.mat');   % <-- change filename as needed
+load('Real_data.mat');   % <-- change filename as needed
 lambda_nm = wavelengths_nm;               % wavelength in nm
 I_lambda  = abs(y_pixels-max(y_pixels));               % spectral intensity (arb. units)
 
