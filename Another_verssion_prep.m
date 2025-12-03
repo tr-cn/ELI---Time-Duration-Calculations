@@ -1,6 +1,6 @@
 clear; close all; clc;
 %% Load spectrum: columns = [lambda_nm, I_lambda]
-load('Real_data.mat');   % <-- change filename as needed
+load('OAP_Zoomed_data_laptop.mat');   % <-- change filename as needed
 lambda_nm = wavelengths_nm;               % wavelength in nm
 I_lambda  = abs(y_pixels-max(y_pixels));               % spectral intensity (arb. units)
 
@@ -54,12 +54,13 @@ half = Imax/2;
 above = find(I_t >= half);
 t_FWHM = t(above(end)) - t(above(1));
 
-fprintf('Transform-limited pulse duration (FWHM) = %.3e s\n', t_FWHM);
+fprintf('Transform-limited pulse duration (FWHM) = %.3f fs\n', t_FWHM/1e-15);
 
 %% Plots
 figure;
 subplot(2,1,1);
-plot(lambda_nm, I_lambda);
+plot(lambda_nm, I_lambda);hold on;
+% plot(I_omega)
 xlabel('\lambda (nm)'); ylabel('I(\lambda)');
 title('Input spectrum');
 
