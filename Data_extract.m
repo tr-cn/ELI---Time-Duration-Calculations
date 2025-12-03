@@ -1,4 +1,4 @@
-if false
+if true
     % щмб 1: итйръ дъоерд
     % дзмйфе аъ 'your_image.png' бщн дчебх щмлн
     img = imread('OAP spectrum.jpeg');

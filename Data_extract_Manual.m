@@ -1,12 +1,13 @@
-if true
-    clear; close all; clc;
-    img = imread('OAP spectrum.jpeg');
+% clear; close all; clc;
+if false
+    % clear; close all; clc;
+    % img = imread('OAP spectrum Zoomed.jpeg');
     % img = imread('Real spectrum.jpeg');
     
     figure;
     imshow(img);
-    imshow(imrotate(img,-1));% OAP +0.3
-    point = 10;
+    imshow(imrotate(img,0.3));% OAP +0.3 % Real -1
+    point = 40;
     title(['Click ',num2str(point),' points'])
     [x_pixels, y_pixels] = ginput(point);
     
@@ -15,10 +16,10 @@ if true
     scatter(x_pixels,y_pixels,'filled','b')
 
 
-    x_ref1_pixel = 278;% 220;%
+    x_ref1_pixel = 83;%OAP Zoomed % OAP 278;% Real 220;%
     x_ref1_value = 750;% 650;%
 
-    x_ref2_pixel = 855;% 1145;%
+    x_ref2_pixel = 1230;%OAP_Real%OAP855;% 1145;%
     x_ref2_value = 900;% 1000;%
 
     m_wavelength = (x_ref2_value - x_ref1_value) / (x_ref2_pixel - x_ref1_pixel);
@@ -33,17 +34,18 @@ if true
 end
 
 if true
-clear; close all; clc
-load("data.mat")
+% clear; close all; clc
+load("Real_data.mat")
+% load("Real_data.mat")
 c = 299792458; % m
-interp_steps = 2^15;
-FFT_steps = 2^25;
+interp_steps = 2^12;
+FFT_steps = 2^20;
 
 [wavelengths_nm, indx] = sort(wavelengths_nm);
 wavelengths_m = wavelengths_nm*1e-9;
 y_pixels = y_pixels(indx);
 
-I_m =  abs(y_pixels - max(y_pixels)); % turning the - sign to pulse sign
+I_m = abs(y_pixels - max(y_pixels)); % turning the - sign to pulse sign
 E_m = sqrt(I_m);
 
 
@@ -53,14 +55,16 @@ omega_PHz = 2 * pi * freq_PHz;
 
 omega_PHz_lin = linspace(omega_PHz(1),omega_PHz(end),interp_steps);
 E_PHz    = interp1(omega_PHz, E_m, omega_PHz_lin, 'pchip', 0);
-
+% E_PHz = E_PHz .* exp(pi*1*(randn(size(E_PHz))-0.0));
 
 dt = 1/abs(freq_PHz(end) - freq_PHz(1)) / (FFT_steps/interp_steps); % fs
 
 time_fs  = [-FFT_steps/2 : (FFT_steps/2-1) ] * dt;
 
-E_fs_uncentered = fft(E_PHz,FFT_steps);
-E_fs = fftshift(E_fs_uncentered);
+E_fs_uncentered = ifft(E_PHz,FFT_steps);
+figure; plot(real(E_fs_uncentered));
+E_fs = ifftshift(E_fs_uncentered);
+plot(time_fs,real(E_fs).^2);
 I_fs = abs(E_fs).^2;
 I_fs = I_fs/max(I_fs);
 I_half_fs = 0.5;
@@ -77,7 +81,8 @@ disp('===================================================');
 figure;
 
 subplot(2,1,1);
-plot(wavelengths_nm, I_m, 'k', 'LineWidth', 2);
+plot(wavelengths_nm, I_m, 'k', 'LineWidth', 2); hold on
+% plot()
 title('Extracted Spectral Intensity vs. Wavelength');
 xlabel('Wavelength (nm)');
 ylabel('Intensity (a.u.)');

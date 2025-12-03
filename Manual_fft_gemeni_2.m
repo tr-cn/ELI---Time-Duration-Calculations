@@ -1,7 +1,7 @@
 clear; close all; clc;
 %% Inverse Fourier Transform for Pulse Reconstruction (Corrected for 2*pi scaling)
 % --- 1. Load and Convert Data ---
-load("Real_data.mat")
+load("data.mat")
 
 c = 299792458; % Speed of light (m/s)
 
@@ -32,7 +32,7 @@ nu_span = nu_Hz(end) - nu_Hz(1);
 dnu_uniform = nu_span / (length(nu_Hz) - 1); 
 
 % Create the new uniform grid spanning the original data range
-nu_uniform_grid = nu_Hz(1) : dnu_uniform : nu_Hz(end);
+nu_uniform_grid = linspace(nu_Hz(1),nu_Hz(end),2^10);%nu_Hz(1) : dnu_uniform : nu_Hz(end);
 
 % 3.3. Resample the spectrum onto the uniform grid
 % Use 'linear' interpolation, setting values outside the range to zero (0).
@@ -147,3 +147,4 @@ ylabel('Normalized Intensity', 'FontSize', 14);
 title(['Reconstructed TL Pulse (FWHM: ' num2str(FWHM*1e15, '%.2f') ' fs)'], 'FontSize', 16);
 grid on;
 axis([min(t_shifted)*1e15 max(t_shifted)*1e15 0 1.05]); % Set y-axis limit
+xlim([-250,250])
