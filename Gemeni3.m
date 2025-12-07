@@ -1,3 +1,4 @@
+clear; close all; clc;
 % ULTRAFAST_FFT.M
 %
 % This script calculates the Transform-Limited (TL) Pulse Duration (FWHM)
@@ -14,7 +15,8 @@
 % ====================================================================
 % --- MAIN EXECUTION BLOCK ---
 % ====================================================================
-load ('OAP_Zoomed_data_laptop.mat');
+% load ('OAP_Zoomed_data_laptop.mat');
+load ('Real_data.mat');
 lambda = wavelengths_nm;
 I = abs(y_pixels - max(y_pixels));
 calculate_transform_limit_matlab(lambda, I);
@@ -41,9 +43,9 @@ function [tau_tl_fs, tbp] = calculate_transform_limit_matlab(wavelengths_nm, int
     frequencies_hz = C_LIGHT ./ wavelengths_m;
     frequencies_thz = frequencies_hz * 1e-12; % Frequencies are now descending
 
-    % The spectral amplitude E(nu) is proportional to: E(nu) ~ sqrt(I(lambda)) * |dlambda/dnu|
+    % The spectral amplitude E(nu) is proportional to: E(nu) ~    % sqrt(I(lambda) * |dlambda/dnu|)
     % Since |dlambda/dnu| ~ lambda^2 / c, we use the lambda^2 factor.
-    spectral_amplitude_nu = sqrt(intensity) .* (wavelengths_m.^2);
+    spectral_amplitude_nu = sqrt(intensity.* (wavelengths_m.^2));
 
     % **CRITICAL MODIFICATION: Resampling onto a uniform Wavelength grid**
     % This violates the IFFT requirement for uniform frequency spacing.
@@ -54,11 +56,11 @@ function [tau_tl_fs, tbp] = calculate_transform_limit_matlab(wavelengths_nm, int
     
     % --- CONTROL POINT 1: INTERPOLATION DENSITY ---
     % Use a large number of points for the interpolation grid (power of 2 is recommended)
-    num_interp_points = 2^12; % e.g., 4096 points
+    num_interp_points = 2^15; % e.g., 4096 points
     
     % --- CONTROL POINT 2: FFT SIZE / ZERO PADDING ---
     % This defines the size of the array used for the IFFT and sets the time resolution.
-    num_fft_points = 2^14; % e.g., 16384 points (must be >= num_interp_points)
+    num_fft_points = 2^20; % e.g., 16384 points (must be >= num_interp_points)
 
     % Create the uniform grid in Wavelength (nm) for interpolation
     uniform_lambda_nm = linspace(lambda_min, lambda_max, num_interp_points);
@@ -238,15 +240,15 @@ function [tau_tl_fs, tbp] = calculate_transform_limit_matlab(wavelengths_nm, int
     
     % Scale factor for plotting the interpolated amplitude alongside intensity
     max_I = max(intensity);
-    max_A = max(uniform_amplitude_on_lambda_grid);
-    scaling_factor = max_I / max_A.^2;
+    A_reconstact = abs(uniform_amplitude_on_lambda_grid).^2./(uniform_lambda_nm*1e-9).^2;
+    % scaling_factor = (1 * max_A);
     
     % Plot 1a: Original Spectrum (Wavelength, Intensity) - Uses sorted input data
     plot(wavelengths_nm, intensity, 'b-', 'LineWidth', 2, 'DisplayName', 'Original Spectrum I(\lambda)');
     
     % Plot 1b: Interpolated Spectrum (Wavelength, Scaled Amplitude)
     % NOTE: This uses the uniform lambda grid for interpolation
-    plot(uniform_lambda_nm, uniform_amplitude_on_lambda_grid.^2 * scaling_factor, 'r--', 'LineWidth', 1, 'DisplayName', 'Resampled Amplitude |I(\nu)| (Uniform \lambda)');
+    plot(uniform_lambda_nm, A_reconstact , 'r--', 'LineWidth', 1, 'DisplayName', 'Resampled Amplitude |I(\nu)| (Uniform \lambda)');
 
     % Plot 1c: Spectral FWHM Line
     if ~isnan(t1_spec)

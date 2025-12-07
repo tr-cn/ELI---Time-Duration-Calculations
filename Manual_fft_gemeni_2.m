@@ -1,13 +1,16 @@
 clear; close all; clc;
 %% Inverse Fourier Transform for Pulse Reconstruction (Corrected for 2*pi scaling)
 % --- 1. Load and Convert Data ---
-load("data.mat")
-
+% load("OAP_Zoomed_data_laptop.mat")
+% load("data.mat")
+load("Real_data.mat")
 c = 299792458; % Speed of light (m/s)
 
 % Your Input Data (Wavelength in nm, Spectrum is REAL Intensity)
 wavelength_nm = wavelengths_nm; % Example: Your input vector in nm
 I_spectrum_meas = abs(y_pixels - max(y_pixels));
+[wavelength_nm,indx]  = sort(wavelength_nm);
+I_spectrum_meas = I_spectrum_meas(indx);
 
 % --- 2. USER INPUT: DESIRED TIME DOMAIN CONTROL ---
 N_eff = 2^20;        % The desired number of points for the IFFT (controls T_total length)
@@ -132,6 +135,13 @@ fprintf('Calculated FWHM Duration: %.2f fs\n', FWHM * 1e15);
 
 % --- 8. PLOTTING ---
 figure;
+subplot(2,1,1)
+plot(wavelength_nm,I_spectrum_meas, "LineWidth",2,"DisplayName","Measured Data"); hold on
+plot(c./nu_uniform_grid*1e9,abs(E_nu_resampled).^2,"LineWidth",2,"LineStyle","--","Color", "red","DisplayName","Intepulated Data")
+legend
+
+
+subplot(2,1,2)
 plot(t_shifted * 1e15, I_t_norm, 'LineWidth', 2);
 hold on;
 % Plot the FWHM line
@@ -147,4 +157,4 @@ ylabel('Normalized Intensity', 'FontSize', 14);
 title(['Reconstructed TL Pulse (FWHM: ' num2str(FWHM*1e15, '%.2f') ' fs)'], 'FontSize', 16);
 grid on;
 axis([min(t_shifted)*1e15 max(t_shifted)*1e15 0 1.05]); % Set y-axis limit
-xlim([-250,250])
+xlim([-150,150])

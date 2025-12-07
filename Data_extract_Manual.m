@@ -7,7 +7,7 @@ if true
     figure;
     imshow(img);
     imshow(imrotate(img,0.3));% OAP +0.3 % Real -1
-    point = 10;
+    point = 15;
     title(['Click ',num2str(point),' points'])
     [x_pixels, y_pixels] = ginput(point);
     
@@ -16,10 +16,10 @@ if true
     scatter(x_pixels,y_pixels,'filled','b')
 
 
-    x_ref1_pixel = 44;%OAP Zoomed % OAP 278;% Real 220;%
+    x_ref1_pixel = 44;%OAP Zoomed % OAP 220
     x_ref1_value = 750;% 650;%
 
-    x_ref2_pixel = 803;%OAP_Real%OAP855;% 1145;%
+    x_ref2_pixel = 806; %803;%OAP_Rea l %OAP 855;% 1145;%
     x_ref2_value = 850;% 1000;%
 
     m_wavelength = (x_ref2_value - x_ref1_value) / (x_ref2_pixel - x_ref1_pixel);
